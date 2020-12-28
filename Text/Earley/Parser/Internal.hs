@@ -185,12 +185,6 @@ data Result s e i a
     -- continuation.
   deriving Functor
 
-{-# INLINE safeHead #-}
-safeHead :: ListLike i t => i -> Maybe t
-safeHead ts
-  | ListLike.null ts = Nothing
-  | otherwise        = Just $ ListLike.head ts
-
 data ParseEnv s e i t a = ParseEnv
   { results :: ![ST s [a]]
     -- ^ Results ready to be reported (when this position has been processed)
@@ -243,7 +237,7 @@ parse [] env = do
 parse (st:ss) env = case st of
   Final res -> parse ss env {results = unResults res : results env}
   State pr args pos scont -> case pr of
-    Terminal f p -> case safeHead (input env) >>= f of
+    Terminal f p -> case ListLike.uncons (input env) >>= f . fst of
       Just a -> parse ss env {next = State p (args . ($ a)) Previous scont
                                    : next env}
       Nothing -> parse ss env
